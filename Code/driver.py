@@ -1,6 +1,7 @@
 import pandas as pd
 import os
 import numpy as np
+import copy
 from classifier import get_classifier, test_clf
 from data_preprocessing import normalize_data
 from data_sample import over_sample, under_sample, smote_sampling
@@ -17,6 +18,7 @@ if __name__ == '__main__':
     print(columns)
 
     test_data = df.sample(frac=0.20)
+    # train data
     df = df.loc[~df.index.isin(test_data.index)]
 
     print(test_data.shape)
@@ -26,22 +28,25 @@ if __name__ == '__main__':
     print(df.head())
 
 
+    # target column
     Y_columns = 'binary_Churn'
-    columns.remove(Y_columns)
+    X_columns = copy.deepcopy(columns)
+
+    X_columns.remove(Y_columns)
     print(columns)
-    X_columns = columns
 
     X = df[X_columns]
+    Y = df[Y_columns]
 
     scaler, X_scaled = normalize_data(X.values.tolist(), (0, 1))
     df[X_columns] = X_scaled
 
     # maj_data = df.loc[df['binary_Churn'] == 0]
     # min_data = df.loc[df['binary_Churn'] == 1]
-    #
+
     # maj_data_list = maj_data.values.tolist()
     # min_data_list = min_data.values.tolist()
-    #
+
     # print(len(maj_data_list))
     # print(len(min_data_list))
     #
@@ -62,35 +67,48 @@ if __name__ == '__main__':
     # min_data_x = min_data[X_columns].values.tolist()
     # min_data_y = min_data[Y_columns].values.tolist()
 
-    print(df[Y_columns].value_counts())
-
+    # print(df[Y_columns].value_counts())
+    #
     X = df[X_columns].values.tolist()
     Y = df[Y_columns].values.tolist()
 
     # scaled_x = normalize_data(X, (0, 1))
 
-    print(df.shape)
+    # print(df.shape)
+    #
+    # print(len(X))
+    # print(len(Y))
 
-    print(len(X))
-    print(len(Y))
-
-    X_res, Y_res = smote_sampling(X, Y)
-
+    # X_res, Y_res = smote_sampling(X, Y)
+    #
     X_test = df[X_columns].values.tolist()
     Y_test = df[Y_columns].values.tolist()
 
-    from collections import Counter
-    print(Counter(Y_res))
+    # from collections import Counter
+    # print(Counter(Y_res))
 
-    # clf = get_classifier('RF', [None, 40])
-    # Y_list = list(map(lambda x: [x], Y_res))
-    # clf.fit(X_res, Y_list)
-    # test_clf(clf, X_test, Y_test)
+    X_res, Y_res = X, Y
 
-    clf = get_classifier('CS')
-    cost_mat = np.zeros((len(X_res), 4))
+
+    clf = get_classifier('CSVM')
+    Y_list = list(map(lambda x: [x], Y_res))
+    clf.fit(X_res, Y_list)
+    test_clf(clf, X_test, Y_test)
+
+    # clf = get_classifier('CS')
+    # cost_mat = np.zeros((len(X_res), 4))
     # 0 - tn, 1 - fp, 2 - fn, 3 - tp
-    cost_mat[:, 0] = 1.5
-    cost_mat[:, 1] = 0.5
-    clf.fit(X_res, Y_res, cost_mat)
-    test_clf(clf, np.array(X_test), np.array(Y_test))
+    # 00 tn
+    # 01 fp
+    # 10 fn
+    # 11 tp
+    # for each_y in Y_res:
+    #     if each_y == 1:
+    #         cost_mat[:, 0] = 1.5
+    #         cost_mat[:, 1] = 0.5
+    #     else:
+    #         cost_mat[:, 0] = 0.5
+    #         cost_mat[:, 1] = 1.5
+    #
+    # clf.fit(np.array(X_res), np.array(Y_res), cost_mat)
+    # test_clf(clf, np.array(X_test), np.array(Y_test))

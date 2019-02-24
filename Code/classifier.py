@@ -17,13 +17,15 @@ def get_classifier(type=None, input_data_shape=None):
         class_weights = {0: 1.5, 1: 1}
         clf = RandomForestClassifier(n_jobs=-1, n_estimators=10, random_state=0, class_weight=class_weights, verbose=1)
     elif type == 'CSVM':
-        class_weights = {0: 1.5, 1: 1}
-        clf = SVC(random_state=0, kernel='linear', class_weight=class_weights, verbose=1)
+        class_weights = {0: 0.5, 1: 1}
+        clf = SVC(random_state=0, kernel='rbf', class_weight=class_weights, verbose=1)
     elif type == 'NN':
         if input_data_shape is None:
             raise Exception('Please provide input data shape')
         net = tflearn.input_data(shape=input_data_shape)
         net = tflearn.fully_connected(net, 100)
+        net = tflearn.fully_connected(net, 80)
+        net = tflearn.fully_connected(net, 40)
         net = tflearn.fully_connected(net, 1, activation='sigmoid')
         net = tflearn.regression(net, optimizer='adam', loss='mean_square')
 
@@ -35,27 +37,36 @@ def get_classifier(type=None, input_data_shape=None):
         raise Exception('Provide a proper classifier')
     return clf
 
+
 def test_clf(clf, X_test, Y_test):
     print(clf)
     try:
         y_prob = clf.predict_proba(X_test)[:,1]
-        print('ACCURACY = ', accuracy_score(Y_test, np.round(y_prob)))
-        print('GEOMETRIC MEAN SCORE = ', geometric_mean_score(Y_test, np.round(y_prob)))
-        print(classification_report(Y_test, np.round(y_prob)))
         roc_score = roc_auc_score(Y_test, y_prob)
         fpr, tpr, threshold = roc_curve(Y_test, y_prob)
         plt.plot(fpr, tpr, label='ROAUC')
+        plt.plot(1-fpr, tpr, 'r')
         plt.xlabel('False Positive Rate')
         plt.ylabel('True Positive Rate')
         plt.title('ROAUC SCORE = %.2f' % roc_score)
         plt.legend(loc='best')
         plt.show()
+        y_predictions = np.round(y_prob)
     except Exception as e:
         y_pred = clf.predict(X_test)
-        print(y_pred)
-        print('ACCURACY = ', accuracy_score(Y_test, np.round(y_pred)))
-        print('GEOMETRIC MEAN SCORE = ', geometric_mean_score(Y_test, np.round(y_pred)))
-        print(classification_report(Y_test, np.round(y_pred)))
+        y_predictions = np.round(y_pred)
+
+    print('ACCURACY = ', accuracy_score(Y_test, np.round(y_predictions)))
+    print('GEOMETRIC MEAN SCORE = ', geometric_mean_score(Y_test, np.round(y_predictions)))
+    print(classification_report(Y_test, np.round(y_predictions)))
+    tn, fp, fn, tp = confusion_matrix(Y_test, np.round(y_predictions)).ravel()
+    metrics = {}
+    metrics['TN'] = tn
+    metrics['FP'] = fp
+    metrics['FN'] = fn
+    metrics['TP'] = tp
+    print('confusion matrix : ', metrics)
+
 
 if __name__ == '__main__':
     # classifiers = ['RF', 'SVM', 'CRF', 'CSVM', 'CS']
